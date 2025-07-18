@@ -1,0 +1,5 @@
+[console_scripts]
+redoc = redoc.cli:main
+redoc-api = redoc.api:main
+redoc-cli = redoc.cli:cli
+redoc-shell = redoc.cli:shell
