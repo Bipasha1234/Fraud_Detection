@@ -213,7 +213,7 @@ def main_dashboard():
             try:
                 df = apply_feature_engineering(df)
                 batch_name = f"batch_{dt.datetime.now():%Y%m%d_%H%M%S}"
-                st.success(f"✅ Uploaded `{uploaded_file.name}` as `{batch_name}`")
+                st.success(f"Uploaded `{uploaded_file.name}` as `{batch_name}`")
                 st.toast("🚀 Feature engineering applied!", icon="✨")
                 batch_records = df.to_dict(orient="records")
                 batch_collection.insert_many([{**rec, "batch_name": batch_name} for rec in batch_records])
@@ -258,7 +258,7 @@ def main_dashboard():
             alert_records = alerts_to_save[["user_id", "txn_time", "amount", "fraud_prob", "batch_name"]].to_dict(orient="records")
             alert_collection.insert_many(alert_records)
         else:
-            st.info("✅ No high-risk transactions detected at this threshold.")
+            st.info("No high-risk transactions detected at this threshold.")
 
         st.subheader("📍 Haversine Distance vs Fraud")
         fig1, ax1 = plt.subplots()
@@ -279,7 +279,7 @@ def main_dashboard():
         st.dataframe(df[["user_id", "txn_time", "amount", "fraud_prob", "fraud_pred"]])
 
         # Add fraud_label column for readability
-        df["fraud_label"] = df["fraud_pred"].map({1: "🚨 RED FLAG", 0: "✅ Normal"})
+        df["fraud_label"] = df["fraud_pred"].map({1: "🚨 RED FLAG", 0: "Normal"})
 
         # Define action based on fraud probability
         df["action"] = df["fraud_prob"].apply(
@@ -326,11 +326,11 @@ def main_dashboard():
                 threshold = st.slider("Fraud Probability Threshold", 0.0, 1.0, 0.5, 0.01)
 
                 batch_df["fraud_pred"] = (batch_df["fraud_prob"] >= threshold).astype(int)
-                batch_df["fraud_label"] = batch_df["fraud_pred"].map({1: "🚨 RED FLAG", 0: "✅ Normal"})
+                batch_df["fraud_label"] = batch_df["fraud_pred"].map({1: "🚨 RED FLAG", 0: "Normal"})
 
                 batch_df["action"] = batch_df["fraud_label"].map({
                     "🚨 RED FLAG": "Freeze account & investigate",
-                    "✅ Normal": "No action"
+                    "Normal": "No action"
                 })
 
                 batch_df["action"] = batch_df["fraud_prob"].apply(
@@ -442,7 +442,7 @@ def main_dashboard():
             alert_df = pd.DataFrame(batch_alerts).sort_values("fraud_prob", ascending=False)
             st.dataframe(alert_df)
         else:
-            st.info("✅ No alerts from batch uploads yet.")
+            st.info("No alerts from batch uploads yet.")
 
     # === User-wise Fraud History Tab ===
     with tabs[3]:
@@ -479,7 +479,7 @@ def main_dashboard():
             st.dataframe(grouped)
 
         else:
-            st.info("✅ No user transactions found in uploaded batches.")
+            st.info("No user transactions found in uploaded batches.")
 
 # --- Main ---
 
