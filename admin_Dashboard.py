@@ -189,11 +189,25 @@ def main_dashboard():
 
 
 # In your logout button handler inside main_dashboard:
+    # Add CSS to center the button in the sidebar
+    st.sidebar.markdown(
+        """
+        <style>
+        div.stButton > button:first-child {
+            display: block;
+            margin: 0 auto;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     if st.sidebar.button("Logout"):
         clear_login_cookie()
-        time.sleep(0.3)  # short pause to ensure cookie clears
+        time.sleep(0.3)
         st.session_state.clear()
         rerun()
+
 
 
     tabs = st.tabs(["🛡️ Dashboard", "📤 Uploaded Batches", "⚠️ Alerts", "👤 User-wise Fraud History"])
@@ -201,6 +215,7 @@ def main_dashboard():
     # === Dashboard Tab ===
     with tabs[0]:
         st.sidebar.header("📤 Batch Upload")
+        
         uploaded_file = st.sidebar.file_uploader("Upload new transaction CSV", type=["csv"])
 
         if uploaded_file:
@@ -303,7 +318,7 @@ def main_dashboard():
         df["summary"] = df.apply(generate_summary, axis=1)
 
         # Show table with these new columns
-        st.subheader("📋 Transactions Table")
+        st.subheader("📋 Transactions Table with actions")
         st.dataframe(df[[
             "user_id", "txn_time", "amount", "fraud_prob", "fraud_label", "action", "summary"
         ]])
@@ -445,6 +460,7 @@ def main_dashboard():
             st.info("No alerts from batch uploads yet.")
 
     # === User-wise Fraud History Tab ===
+    # === User-wise Fraud History Tab ===
     with tabs[3]:
         st.header("👤 User-wise Fraud History")
 
@@ -456,9 +472,19 @@ def main_dashboard():
         if user_records:
             user_df = pd.DataFrame(user_records)
 
+            # Calculate fraud_pred for each transaction (reuse same logic)
+            model = load_model()
+            user_df = apply_feature_engineering(user_df)
+            features = ["amount", "haversine_km", "new_device", "login_txn_gap_min"]
+            user_df["fraud_prob"] = model.predict_proba(user_df[features])[:, 1]
+            user_df["fraud_pred"] = (user_df["fraud_prob"] >= 0.5).astype(int)  # threshold 0.5 here, adjust as needed
+
+            # Aggregate per user
             grouped = user_df.groupby("user_id").agg({
                 "txn_id": "count",
                 "amount": ["sum", "mean"],
+                "fraud_pred": "sum",
+                "fraud_prob": "mean",
                 "haversine_km": "mean",
                 "new_device": "sum",
                 "login_txn_gap_min": "mean"
@@ -469,17 +495,48 @@ def main_dashboard():
                 "total_transactions",
                 "total_amount",
                 "avg_amount",
+                "fraud_transactions",
+                "avg_fraud_prob",
                 "avg_haversine_km",
                 "new_devices_used",
                 "avg_login_txn_gap_min"
             ]
 
-            grouped = grouped.sort_values("total_transactions", ascending=False)
+            # Add fraud percentage
+            grouped["fraud_percentage"] = (grouped["fraud_transactions"] / grouped["total_transactions"] * 100).round(2)
 
-            st.dataframe(grouped)
+            # Add fraud label per user
+            def user_fraud_label(row):
+                if row["fraud_percentage"] > 50:
+                    return "🚨 HIGH RISK"
+                elif row["fraud_percentage"] > 10:
+                    return "⚠️ Medium Risk"
+                else:
+                    return "Normal"
 
+            grouped["fraud_label"] = grouped.apply(user_fraud_label, axis=1)
+
+            # Add action based on fraud label
+            def user_action(row):
+                if row["fraud_label"] == "🚨 HIGH RISK":
+                    return "Freeze account & investigate"
+                elif row["fraud_label"] == "⚠️ Medium Risk":
+                    return "Review user transactions"
+                else:
+                    return "No action"
+
+            grouped["recommended_action"] = grouped.apply(user_action, axis=1)
+
+            grouped = grouped.sort_values("fraud_percentage", ascending=False)
+
+            st.dataframe(grouped[[
+                "user_id", "total_transactions", "fraud_transactions", "fraud_percentage",
+                "avg_fraud_prob", "fraud_label", "recommended_action",
+                "total_amount", "avg_amount", "avg_haversine_km", "new_devices_used", "avg_login_txn_gap_min"
+            ]])
         else:
             st.info("No user transactions found in uploaded batches.")
+
 
 # --- Main ---
 
