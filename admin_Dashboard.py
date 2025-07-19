@@ -492,10 +492,10 @@ def main():
         st.session_state["logged_in"] = False
         st.session_state["username"] = ""
 
-    st.sidebar.title("User Authentication")
     if st.session_state["logged_in"]:
         main_dashboard()
     else:
+        st.sidebar.title("User Authentication")  # <-- only show this if NOT logged in
         page = st.sidebar.radio("Select page", ["Login", "Register", "Reset Password"])
         if page == "Login":
             login_page()
@@ -503,6 +503,7 @@ def main():
             register_page()
         elif page == "Reset Password":
             password_reset_page()
+
 
 if __name__ == "__main__":
     main()
