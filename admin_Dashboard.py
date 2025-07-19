@@ -262,20 +262,48 @@ def main_dashboard():
         else:
             st.info("No high-risk transactions detected at this threshold.")
 
-        st.subheader("📍 Haversine Distance vs Fraud")
-        fig1, ax1 = plt.subplots()
-        sns.boxplot(data=df, x="fraud_pred", y="haversine_km", ax=ax1)
-        st.pyplot(fig1)
+        # Dropdown to select visualization
+        viz_option = st.sidebar.selectbox(
+            "Select Visualization:",
+            [
+                "Haversine Distance vs Fraud",
+                "New Device Usage",
+                "Login-Transaction Gap",
+                "Fraud Probability Distribution",
+                "Amount vs Fraud Prediction",
+            ]
+        )
 
-        st.subheader("💻 New Device Usage")
-        fig2, ax2 = plt.subplots()
-        sns.countplot(data=df, x="new_device", hue="fraud_pred", ax=ax2)
-        st.pyplot(fig2)
+        if viz_option == "Haversine Distance vs Fraud":
+            st.subheader("📍 Haversine Distance vs Fraud")
+            fig1, ax1 = plt.subplots()
+            sns.boxplot(data=df, x="fraud_pred", y="haversine_km", ax=ax1)
+            st.pyplot(fig1)
 
-        st.subheader("⏱️ Login-Transaction Gap")
-        fig3, ax3 = plt.subplots()
-        sns.boxplot(data=df, x="fraud_pred", y="login_txn_gap_min", ax=ax3)
-        st.pyplot(fig3)
+        elif viz_option == "New Device Usage":
+            st.subheader("💻 New Device Usage")
+            fig2, ax2 = plt.subplots()
+            sns.countplot(data=df, x="new_device", hue="fraud_pred", ax=ax2)
+            st.pyplot(fig2)
+
+        elif viz_option == "Login-Transaction Gap":
+            st.subheader("⏱️ Login-Transaction Gap")
+            fig3, ax3 = plt.subplots()
+            sns.boxplot(data=df, x="fraud_pred", y="login_txn_gap_min", ax=ax3)
+            st.pyplot(fig3)
+
+        elif viz_option == "Fraud Probability Distribution":
+            st.subheader("📈 Fraud Probability Distribution")
+            fig4, ax4 = plt.subplots()
+            sns.histplot(df["fraud_prob"], bins=30, kde=True, ax=ax4)
+            ax4.set_xlabel("Fraud Probability")
+            st.pyplot(fig4)
+
+        elif viz_option == "Amount vs Fraud Prediction":
+            st.subheader("💰 Transaction Amount vs Fraud Prediction")
+            fig5, ax5 = plt.subplots()
+            sns.boxplot(data=df, x="fraud_pred", y="amount", ax=ax5)
+            st.pyplot(fig5)
 
         st.subheader("📋 Transactions Table")
         st.dataframe(df[["user_id", "txn_time", "amount", "fraud_prob", "fraud_pred"]])
@@ -304,12 +332,13 @@ def main_dashboard():
 
         df["summary"] = df.apply(generate_summary, axis=1)
 
-        # Show table with these new columns
         st.subheader("📋 Transactions Table with actions")
-        st.dataframe(df[[
-            "user_id", "txn_time", "amount", "fraud_prob", "fraud_label", "action", "summary"
-        ]])
-
+        st.dataframe(df[
+            [
+                "user_id", "txn_time", "amount", "fraud_prob",
+                "fraud_label", "action", "summary"
+            ]
+        ])
 
     # === Uploaded Batches Tab ===
     with tabs[1]:
