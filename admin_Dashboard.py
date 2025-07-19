@@ -10,9 +10,6 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 from pymongo import MongoClient
-# Removed these deprecated imports
-# from streamlit.runtime.scriptrunner import RerunException, add_script_run_ctx
-# Cookie manager package
 from streamlit_cookies_manager import CookieManager
 
 st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
