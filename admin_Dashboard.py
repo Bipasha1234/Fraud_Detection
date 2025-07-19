@@ -460,7 +460,6 @@ def main_dashboard():
             st.info("No alerts from batch uploads yet.")
 
     # === User-wise Fraud History Tab ===
-    # === User-wise Fraud History Tab ===
     with tabs[3]:
         st.header("👤 User-wise Fraud History")
 
@@ -472,14 +471,14 @@ def main_dashboard():
         if user_records:
             user_df = pd.DataFrame(user_records)
 
-            # Calculate fraud_pred for each transaction (reuse same logic)
+            # Apply feature engineering and prediction as before
             model = load_model()
             user_df = apply_feature_engineering(user_df)
             features = ["amount", "haversine_km", "new_device", "login_txn_gap_min"]
             user_df["fraud_prob"] = model.predict_proba(user_df[features])[:, 1]
-            user_df["fraud_pred"] = (user_df["fraud_prob"] >= 0.5).astype(int)  # threshold 0.5 here, adjust as needed
+            user_df["fraud_pred"] = (user_df["fraud_prob"] >= 0.5).astype(int)  # threshold can be adjusted
 
-            # Aggregate per user
+            # Aggregate user-level stats
             grouped = user_df.groupby("user_id").agg({
                 "txn_id": "count",
                 "amount": ["sum", "mean"],
@@ -502,40 +501,82 @@ def main_dashboard():
                 "avg_login_txn_gap_min"
             ]
 
-            # Add fraud percentage
-            grouped["fraud_percentage"] = (grouped["fraud_transactions"] / grouped["total_transactions"] * 100).round(2)
+            # Function to generate user-level anomaly summary
+            def generate_user_summary(user_id, user_transactions_df):
+                summaries = []
 
-            # Add fraud label per user
-            def user_fraud_label(row):
-                if row["fraud_percentage"] > 50:
-                    return "🚨 HIGH RISK"
-                elif row["fraud_percentage"] > 10:
-                    return "⚠️ Medium Risk"
+                txn_hours = user_transactions_df["txn_time"].dt.hour
+                if any((txn_hours >= 0) & (txn_hours < 6)):
+                    summaries.append("Unusual login hours")
+
+                if any(user_transactions_df["haversine_km"] > 50):
+                    summaries.append("Unusual location distance")
+
+                if any(user_transactions_df["new_device"] == 1):
+                    summaries.append("Used new device")
+
+                if summaries:
+                    return "; ".join(summaries)
                 else:
-                    return "Normal"
+                    return "No anomalies detected"
 
-            grouped["fraud_label"] = grouped.apply(user_fraud_label, axis=1)
+            # Create user-level summaries
+            user_summaries = []
+            for user_id, group_df in user_df.groupby("user_id"):
+                summary_text = generate_user_summary(user_id, group_df)
+                user_summaries.append((user_id, summary_text))
 
-            # Add action based on fraud label
-            def user_action(row):
-                if row["fraud_label"] == "🚨 HIGH RISK":
-                    return "Freeze account & investigate"
-                elif row["fraud_label"] == "⚠️ Medium Risk":
-                    return "Review user transactions"
-                else:
-                    return "No action"
+            summary_df = pd.DataFrame(user_summaries, columns=["user_id", "user_summary"])
 
-            grouped["recommended_action"] = grouped.apply(user_action, axis=1)
+            # Merge the summaries with the grouped dataframe
+            grouped = grouped.merge(summary_df, on="user_id", how="left")
 
-            grouped = grouped.sort_values("fraud_percentage", ascending=False)
+            # Checkbox to show/hide summary and actions
+            show_summary = st.checkbox("Show Fraud Summary and Actions")
 
-            st.dataframe(grouped[[
-                "user_id", "total_transactions", "fraud_transactions", "fraud_percentage",
-                "avg_fraud_prob", "fraud_label", "recommended_action",
-                "total_amount", "avg_amount", "avg_haversine_km", "new_devices_used", "avg_login_txn_gap_min"
-            ]])
+            if show_summary:
+                grouped["fraud_percentage"] = (grouped["fraud_transactions"] / grouped["total_transactions"] * 100).round(2)
+
+                def user_fraud_label(row):
+                    if row["fraud_percentage"] > 50:
+                        return "🚨 HIGH RISK"
+                    elif row["fraud_percentage"] > 10:
+                        return "⚠️ Medium Risk"
+                    else:
+                        return "Normal"
+
+                grouped["fraud_label"] = grouped.apply(user_fraud_label, axis=1)
+
+                def user_action(row):
+                    if row["fraud_label"] == "🚨 HIGH RISK":
+                        return "Freeze account & investigate"
+                    elif row["fraud_label"] == "⚠️ Medium Risk":
+                        return "Review user transactions"
+                    else:
+                        return "No action"
+
+                grouped["recommended_action"] = grouped.apply(user_action, axis=1)
+
+                display_cols = [
+                    "user_id", "total_transactions", "fraud_transactions", "fraud_percentage",
+                    "avg_fraud_prob", "fraud_label", "recommended_action",
+                    "total_amount", "avg_amount", "avg_haversine_km", "new_devices_used", "avg_login_txn_gap_min",
+                    "user_summary"  # <-- show anomaly summary here
+                ]
+            else:
+                display_cols = [
+                    "user_id", "total_transactions", "fraud_transactions",
+                    "avg_fraud_prob", "total_amount", "avg_amount",
+                    "avg_haversine_km", "new_devices_used", "avg_login_txn_gap_min"
+                ]
+
+            grouped = grouped.sort_values("fraud_transactions", ascending=False)
+            st.dataframe(grouped[display_cols])
+
         else:
             st.info("No user transactions found in uploaded batches.")
+
+
 
 
 # --- Main ---
