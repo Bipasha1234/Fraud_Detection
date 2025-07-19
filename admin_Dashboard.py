@@ -1,6 +1,6 @@
 import datetime as dt
 import io
-import time  # Added import for time module
+import time
 
 import bcrypt
 import joblib
@@ -16,11 +16,7 @@ st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
 def rerun():
     st.rerun()
 
-
 cookies = CookieManager()
-
-
-
 # --- MongoDB Setup ---
 client = MongoClient("mongodb://localhost:27017")
 db = client["fraud_detection"]
@@ -32,7 +28,6 @@ if not cookies.ready():
     st.stop()  # Wait until cookies are loaded
 
 # --- Authentication helpers with cookies ---
-
 def set_login_cookie(username: str):
     cookies["logged_in"] = "true"
     cookies["username"] = username
@@ -50,7 +45,6 @@ def get_logged_in_username() -> str:
     return cookies.get("username") or ""
 
 # --- Password hashing and verification ---
-
 def hash_password(password: str) -> bytes:
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode(), salt)
@@ -82,7 +76,6 @@ def verify_user(username, password):
     return False
 
 # --- Authentication Pages ---
-
 def login_page():
     st.title("🔐 Login")
 
@@ -102,7 +95,6 @@ def login_page():
 
 def register_page():
     st.title("📝 Register New User")
-
     username = st.text_input("Choose a Username", key="reg_username")
     password = st.text_input("Choose a Password", type="password", key="reg_password")
     password_confirm = st.text_input("Confirm Password", type="password", key="reg_password_confirm")
@@ -144,7 +136,6 @@ def password_reset_page():
             st.error("Username or current password is incorrect")
 
 # --- Load data and model ---
-
 @st.cache_data
 def load_data():
     df = pd.read_csv("merged_anomaly_features.csv", parse_dates=["txn_time", "login_time"])
@@ -155,7 +146,6 @@ def load_model():
     return joblib.load("fraud_rf_model.pkl")
 
 # --- Haversine function ---
-
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     lat1 = np.radians(pd.to_numeric(lat1, errors='coerce'))
@@ -169,7 +159,6 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * c
 
 # --- Feature engineering ---
-
 def apply_feature_engineering(df):
     df["txn_time"] = pd.to_datetime(df["txn_time"])
     df["login_time"] = pd.to_datetime(df["login_time"])
@@ -182,14 +171,12 @@ def apply_feature_engineering(df):
     return df
 
 # --- Main Dashboard ---
-
 def main_dashboard():
     username = st.session_state.get("username", get_logged_in_username())
     st.sidebar.write(f"👤 Logged in as: **{username}**")
 
 
 # In your logout button handler inside main_dashboard:
-    # Add CSS to center the button in the sidebar
     st.sidebar.markdown(
         """
         <style>
@@ -476,7 +463,7 @@ def main_dashboard():
             user_df = apply_feature_engineering(user_df)
             features = ["amount", "haversine_km", "new_device", "login_txn_gap_min"]
             user_df["fraud_prob"] = model.predict_proba(user_df[features])[:, 1]
-            user_df["fraud_pred"] = (user_df["fraud_prob"] >= 0.5).astype(int)  # threshold can be adjusted
+            user_df["fraud_pred"] = (user_df["fraud_prob"] >= 0.5).astype(int)  
 
             # Aggregate user-level stats
             grouped = user_df.groupby("user_id").agg({
@@ -576,11 +563,6 @@ def main_dashboard():
         else:
             st.info("No user transactions found in uploaded batches.")
 
-
-
-
-# --- Main ---
-
 def main():
     # Check cookie login status on app start
     if is_logged_in():
@@ -593,7 +575,7 @@ def main():
     if st.session_state["logged_in"]:
         main_dashboard()
     else:
-        st.sidebar.title("User Authentication")  # <-- only show this if NOT logged in
+        st.sidebar.title("User Authentication")  
         page = st.sidebar.radio("Select page", ["Login", "Register", "Reset Password"])
         if page == "Login":
             login_page()
@@ -601,7 +583,5 @@ def main():
             register_page()
         elif page == "Reset Password":
             password_reset_page()
-
-
 if __name__ == "__main__":
     main()
