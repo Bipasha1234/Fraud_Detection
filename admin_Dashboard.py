@@ -179,7 +179,7 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    return joblib.load("fraud_rf_model.pkl")
+    return joblib.load("models/fraud_rf_model.pkl")
 
 # --- Haversine function ---
 def haversine(lat1, lon1, lat2, lon2):

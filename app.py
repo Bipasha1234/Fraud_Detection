@@ -14,7 +14,7 @@ db = client.fraud_detection
 transactions_collection = db.transactions
 
 # Load model
-MODEL_PATH = "fraud_rf_model.pkl"
+MODEL_PATH = "models/fraud_rf_model.pkl"
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError("Model file not found: fraud_rf_model.pkl")
 
