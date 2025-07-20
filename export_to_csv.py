@@ -3,7 +3,7 @@ from pymongo import MongoClient
 
 # 1. Connect to MongoDB
 client = MongoClient("mongodb://localhost:27017")
-db = client["fraud_detection_db"]
+db = client["fraud_detection"]
 collection = db["uploaded_batches"]
 
 # 2. Query all documents
