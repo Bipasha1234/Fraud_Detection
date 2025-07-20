@@ -12,7 +12,7 @@ import streamlit as st
 from pymongo import MongoClient
 from streamlit_cookies_manager import CookieManager
 
-st.set_page_config(page_title="Fraud Detection Dashboard", layout="wide")
+st.set_page_config(page_title="Fraud Detection Dashboard for admin", layout="wide")
 def rerun():
     st.rerun()
 
