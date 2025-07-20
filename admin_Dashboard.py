@@ -1,6 +1,8 @@
 import datetime as dt
 import io
+import smtplib
 import time
+from email.mime.text import MIMEText
 
 import bcrypt
 import joblib
@@ -27,6 +29,40 @@ alert_collection = db["fraud_alerts"]
 if not cookies.ready():
     st.stop()  # Wait until cookies are loaded
 
+
+def send_email_alert(user_id, txn_time, amount, fraud_prob):
+    SMTP_SERVER = "smtp.gmail.com"
+    SMTP_PORT = 587
+    SMTP_USERNAME = "bipashalamsal@gmail.com"
+    SMTP_PASSWORD = "wndpmpiouolzstrk" 
+    
+    FROM_EMAIL = SMTP_USERNAME
+    TO_EMAIL = "bipashalamsal@gmail.com"  
+    
+    subject = f"Fraud Alert for User {user_id}"
+    body = (
+        f"Suspicious transaction detected:\n\n"
+        f"User ID: {user_id}\n"
+        f"Transaction Time: {txn_time}\n"
+        f"Amount: Rs {amount:.2f}\n"
+        f"Fraud Probability: {fraud_prob:.2%}\n\n"
+        "Please review immediately."
+    )
+    
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = FROM_EMAIL
+    msg["To"] = TO_EMAIL
+    
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.sendmail(FROM_EMAIL, TO_EMAIL, msg.as_string())
+        print(f"Alert email sent for user {user_id}")
+    except Exception as e:
+        print(f"Failed to send alert email: {e}")
+        
 # --- Authentication helpers with cookies ---
 def set_login_cookie(username: str):
     cookies["logged_in"] = "true"
@@ -251,14 +287,20 @@ def main_dashboard():
 
         st.subheader("🚨 High-Risk Alerts")
         alerts = df[df["fraud_pred"] == 1]
+
         if not alerts.empty:
             for _, row in alerts.head(5).iterrows():
                 st.error(f"User {row['user_id']} → Rs {row['amount']:.2f} | Prob: {row['fraud_prob']:.2%}")
+                
+                # Send real-time email alert for each fraud transaction shown
+                send_email_alert(row["user_id"], row["txn_time"], row["amount"], row["fraud_prob"])
 
+            # Save alerts to MongoDB collection
             alerts_to_save = alerts.copy()
             alerts_to_save["batch_name"] = batch_name if "batch_name" in locals() else "base_data"
             alert_records = alerts_to_save[["user_id", "txn_time", "amount", "fraud_prob", "batch_name"]].to_dict(orient="records")
             alert_collection.insert_many(alert_records)
+
         else:
             st.info("No high-risk transactions detected at this threshold.")
 
