@@ -4,3 +4,4 @@ pydantic
 pandas
 scikit-learn
 joblib
+motor
