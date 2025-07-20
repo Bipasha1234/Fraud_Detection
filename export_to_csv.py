@@ -1,15 +1,21 @@
 import pandas as pd
 from pymongo import MongoClient
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client["fraud_detection"]
+# 1. Connect to MongoDB
+client = MongoClient("mongodb://localhost:27017")
+db = client["fraud_detection_db"]
+collection = db["uploaded_batches"]
 
-# Export predictions
-df = pd.DataFrame(list(db["api_predictions"].find()))
-df.to_csv("fraud_predictions.csv", index=False)
+# 2. Query all documents
+data = list(collection.find())
 
-# Export fraud alerts
-df_alerts = pd.DataFrame(list(db["fraud_alert_log"].find()))
-df_alerts.to_csv("fraud_alerts.csv", index=False)
+# 3. Convert to DataFrame (remove MongoDB’s ObjectId if needed)
+for doc in data:
+    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
 
-print("✅ Exported both CSV files successfully.")
+df = pd.DataFrame(data)
+
+# 4. Save to CSV
+df.to_csv("fraud_transactions.csv", index=False)
+
+print("Exported successfully to fraud_transactions.csv")
