@@ -174,7 +174,7 @@ def password_reset_page():
 # --- Load data and model ---
 @st.cache_data
 def load_data():
-    df = pd.read_csv("merged_anomaly_features.csv", parse_dates=["txn_time", "login_time"])
+    df = pd.read_csv("data/merged_anomaly_features.csv", parse_dates=["txn_time", "login_time"])
     return df
 
 @st.cache_resource
