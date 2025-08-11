@@ -10,7 +10,7 @@ from sklearn.utils import resample
 # Paths
 MODEL_PATH = "models/fraud_rf_model.pkl"
 NEW_DATA_PATH = "data/new_transactions.csv"
-OLD_DATA_PATH = "data/merged_anomaly_features.csv"  # Your original training data
+OLD_DATA_PATH = "data/merged_anomaly_features.csv"  # original training data
 METRICS_PATH = "metrics/latest_metrics.json"
 
 FEATURES = ["amount", "haversine_km", "new_device", "login_txn_gap_min"]
